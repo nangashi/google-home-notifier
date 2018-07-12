@@ -7,10 +7,8 @@ let DefaultMediaReceiver = require('castv2-client').DefaultMediaReceiver;
 let mdns = require('mdns');
 
 class GoogleHomeNotifier {
-  constructor(voiceTextKey, audioFile, audioUrl) {
+  constructor(voiceTextKey) {
     this.voicetext = new VoiceText(voiceTextKey);
-    this.audioFile = audioFile;
-    this.audioUrl = audioUrl;
     this.setting = {
       speaker: this.voicetext.SPEAKER.HIKARI,
       pitch: 100,
@@ -29,7 +27,7 @@ class GoogleHomeNotifier {
     return this;
   }
 
-  notify(message, callback) {
+  notify(message, audioFile, audioUrl, callback) {
     if (!this.deviceAddress) {
       let browser = mdns.createBrowser(mdns.tcp('googlecast'));
       browser.start();
@@ -37,20 +35,20 @@ class GoogleHomeNotifier {
         console.log('Device "%s" at %s:%d', service.name, service.addresses[0], service.port);
         if (service.name.includes(this.device.replace(' ', '-'))) {
           this.deviceAddress = service.addresses[0];
-          this.getSpeechUrl(message, this.deviceAddress, function (res) {
+          this.getSpeechUrl(message, this.deviceAddress, audioFile, audioUrl, function (res) {
             callback(res);
           });
         }
         browser.stop();
       });
     } else {
-      this.getSpeechUrl(message, this.deviceAddress, function (res) {
+      this.getSpeechUrl(message, this.deviceAddress, audioFile, audioUrl, function (res) {
         callback(res);
       });
     }
   };
 
-  getSpeechUrl(text, host, callback) {
+  getSpeechUrl(text, host, audioFile, audioUrl, callback) {
     this.voicetext
       .speaker(this.setting.speaker)
       .pitch(this.setting.pitch)
@@ -58,9 +56,9 @@ class GoogleHomeNotifier {
       .volume(this.setting.volume)
       .speak(text, (e, buf) => {
         const fs = require('fs');
-
-        fs.writeFile(this.audioFile, buf, 'binary', (e) => {
-          this.onDeviceUp(host, this.audioUrl, callback);
+        console.log(audioFile);
+        fs.writeFile(audioFile, buf, 'binary', (e) => {
+          this.onDeviceUp(host, audioUrl, callback);
         });
       });
   };
